@@ -1,0 +1,96 @@
+# Data Creation
+# Creating numeric vectors for diastolic blood pressure measurements (diastolica)
+# and two sets of coronary event counts (coronarios0 and coronarios1).
+diastolica <- c(55, 60, 65, 66, 68, 70, 74, 75, 76, 78, 80, 82, 84, 85, 86, 88, 90, 92, 94, 95, 96, 100, 104, 105, 110, 112)
+coronarios0 <- c(1, 4, 2, 1, 4, 23, 2, 12, 1, 8, 53, 6, 1, 4, 0, 8, 31, 2, 2, 0, 1, 3, 2, 0, 2, 1)
+coronarios1 <- c(0, 0, 0, 0, 0, 4, 1, 0, 0, 1, 5, 1, 0, 1, 1, 0, 6, 0, 1, 1, 0, 1, 0, 1, 2, 0)
+
+# Creating a DataFrame
+# Combining the vectors into a DataFrame named 'Presion' for further analysis.
+Presion <- data.frame(Diastolica = diastolica, Coronarios0 = coronarios0, Coronarios1 = coronarios1)
+
+# Displaying Data
+# Outputting the first few rows of the DataFrame to check the data structure.
+Presion
+
+# Generalized Linear Model (GLM) Fitting
+# Fitting a GLM to predict coronary events based on diastolic blood pressure.
+Ajuste.Presion <- glm(cbind(Coronarios1, Coronarios0) ~ Diastolica, data = Presion, family = binomial)
+
+# Model Summary
+# Displaying a summary of the fitted model, including coefficients and statistics.
+summary(Ajuste.Presion)
+
+# Predicted Values
+# Getting the fitted values (predicted probabilities) from the model.
+fitted.values(Ajuste.Presion)
+
+# Making Predictions
+# Predicting response probabilities and linear predictors ('link' function) using the model.
+predict(Ajuste.Presion, type = "response")
+predict(Ajuste.Presion, type = "link")
+
+# Predictions with Standard Error
+# Obtaining predictions with standard error for both response probabilities and linear predictors.
+predict(Ajuste.Presion, type = "response", se.fit = TRUE)
+predict(Ajuste.Presion, type = "link", se.fit = TRUE)
+
+# Predicting New Data
+# Creating new data for prediction and displaying it.
+Nuevas.Presion <- data.frame(c(69, 98, 107))
+names(Nuevas.Presion) <- "Diastolica"
+Nuevas.Presion
+
+# Predictions for New Data with Standard Error
+# Making predictions for the new data with standard error included.
+predict(Ajuste.Presion, newdata = Nuevas.Presion, type = "response", se.fit = TRUE)
+predict(Ajuste.Presion, newdata = Nuevas.Presion, type = "link", se.fit = TRUE)
+
+# Weighted Predicted Values
+# Calculating weighted predictions by multiplying the fitted values with the sum of coronary event counts.
+(Presion$Coronarios0 + Presion$Coronarios1) * fitted.values(Ajuste.Presion)
+
+# Preparing Data for Goodness-of-Fit Test
+# Creating vectors of predicted values and observed outcomes for the Hosmer-Lemeshow test.
+Predichos.No.Agrupadas <- c(rep(fitted.values(Ajuste.Presion), Presion$Coronarios0),
+                            rep(fitted.values(Ajuste.Presion), Presion$Coronarios1))
+Observados.No.Agrupados <- c(rep(0, sum(Presion$Coronarios0)),
+                             rep(1, sum(Presion$Coronarios1)))
+
+# Loading Library for Goodness-of-Fit Test
+# Loading the necessary library to perform the Hosmer-Lemeshow test.
+library(ResourceSelection)
+
+# Performing Hosmer-Lemeshow Test
+# Conducting the test to evaluate the fit of the model.
+hoslem.test(Observados.No.Agrupados, Predichos.No.Agrupadas)
+
+# Storing and Accessing Test Results
+# Storing the test results and accessing the observed values.
+Bondad.Hosmer.Agrup <- hoslem.test(Observados.No.Agrupados, Predichos.No.Agrupadas)
+Bondad.Hosmer.Agrup$observed
+
+# Confidence Intervals
+# Calculating and exponentiating confidence intervals for the model's parameters.
+confint.default(Ajuste.Presion, level = 0.95)
+confint.default(Ajuste.Presion, level = 0.90)
+exp(confint.default(Ajuste.Presion, level = 0.95))
+exp(confint.default(Ajuste.Presion, level = 0.90))
+
+# General and Specific Models
+# Fitting two versions of the GLM for comparison: a general model with the predictor and a null model.
+Ajuste.Presion <- glm(cbind(Coronarios1, Coronarios0) ~ Diastolica, data = Presion, family = binomial)
+Ajuste.Presion.0 <- glm(cbind(Coronarios1, Coronarios0) ~ 1, data = Presion, family = binomial)
+
+# Model Comparison
+# Comparing the two models using ANOVA to see the effect of including the predictor.
+anova(Ajuste.Presion.0, Ajuste.Presion)
+
+# Residuals and Influence Measures
+# Calculating various types of residuals and influence measures to assess model diagnostics.
+residuals(Ajuste.Presion, type = "pearson")
+residuals(Ajuste.Presion, type = "deviance")
+hatvalues(Ajuste.Presion)
+rstandard(Ajuste.Presion, type = "pearson")
+rstandard(Ajuste.Presion, type = "deviance")
+cooks.distance(Ajuste.Presion)
